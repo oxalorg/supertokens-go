@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -116,7 +115,6 @@ func (st *SupertokensCore) handshake() error {
 		return err
 	}
 
-	log.Println(st.handshakeInfo)
 	return nil
 }
 
@@ -145,24 +143,25 @@ type StToken struct {
 	Domain       string
 }
 
-func (st *SupertokensCore) createSession(userID string, jwtPayload map[string]interface{}, sessionData map[string]interface{}) (*http.Response, error) {
+func (st *SupertokensCore) createSession(userID string, jwtPayload *map[string]interface{}, sessionData *map[string]interface{}) (*http.Response, error) {
 	if !st.isInitialized {
 		return nil, errors.New("driver has not yet been initialized")
 	}
 
 	sessionInput := &struct {
-		UserID      string `json:"userId"`
-		JwtPayload  *map[string]interface{}
-		SessionData *map[string]interface{}
+		UserID      string                  `json:"userId"`
+		JwtPayload  *map[string]interface{} `json:"userDataInJWT"`
+		SessionData *map[string]interface{} `json:"userDataInDatabase"`
 	}{
 		userID,
-		&jwtPayload,
-		&sessionData,
+		jwtPayload,
+		sessionData,
 	}
 
 	buf := new(bytes.Buffer)
 	json.NewEncoder(buf).Encode(sessionInput)
-	resp, err := st.doRoundRobin("POST", "/handshake", buf)
+	resp, err := st.doRoundRobin("POST", "/session", buf)
+	fmt.Println()
 	if err != nil {
 		return nil, err
 	}
