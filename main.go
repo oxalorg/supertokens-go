@@ -16,6 +16,7 @@ type SupertokensCore struct {
 	handshakeInfo    *HandshakeInfo
 	deviceDriverInfo *DeviceDriverInfo
 	client           *http.Client
+	isInitialized    bool
 }
 
 // DeviceDriverInfo info about device and driver
@@ -69,14 +70,17 @@ func (st *SupertokensCore) doRoundRobin(method string, path string, body io.Read
 	return nil, errors.New("none of the backends are active")
 }
 
-func (st *SupertokensCore) hello() *http.Response {
-	// TODO: Round Robin
-	resp, err := st.doRoundRobin("GET", "/hello", nil)
-	if err != nil {
-		log.Fatalln(err)
+func (st *SupertokensCore) hello() (*http.Response, error) {
+	if !st.isInitialized {
+		return nil, errors.New("driver has not yet been initialized")
 	}
 
-	return resp
+	resp, err := st.doRoundRobin("GET", "/hello", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (st *SupertokensCore) init(backends []BackendConfig, deviceDriverInfo *DeviceDriverInfo) {
@@ -86,6 +90,7 @@ func (st *SupertokensCore) init(backends []BackendConfig, deviceDriverInfo *Devi
 	}
 	st.deviceDriverInfo = deviceDriverInfo
 	st.backends = backends
+	st.isInitialized = true
 
 	// Perform Handshake
 	if st.handshakeInfo == nil {
@@ -93,7 +98,10 @@ func (st *SupertokensCore) init(backends []BackendConfig, deviceDriverInfo *Devi
 	}
 }
 
-func (st *SupertokensCore) handshake() {
+func (st *SupertokensCore) handshake() error {
+	if !st.isInitialized {
+		return errors.New("driver has not yet been initialized")
+	}
 	buf := new(bytes.Buffer)
 	json.NewEncoder(buf).Encode(st.deviceDriverInfo)
 
@@ -109,5 +117,6 @@ func (st *SupertokensCore) handshake() {
 	}
 
 	log.Println(st.handshakeInfo)
+	return nil
 }
 
