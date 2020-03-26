@@ -120,3 +120,52 @@ func (st *SupertokensCore) handshake() error {
 	return nil
 }
 
+// SessionResponse session response containing tokens
+type SessionResponse struct {
+	Session        *stSession
+	AccessToken    *StToken
+	RefreshToken   *StToken
+	IDRefreshToken *StToken `json:"idRefreshToken"`
+	AntiCsrfToken  string
+}
+
+type stSession struct {
+	Handle        string
+	UserID        string `json:"userId"`
+	UserDataInJWT map[string]interface{}
+}
+
+// StToken Token Object
+type StToken struct {
+	Token        string
+	Expiry       int
+	CreatedTime  int
+	CookiePath   string
+	CookieSecure bool
+	Domain       string
+}
+
+func (st *SupertokensCore) createSession(userID string, jwtPayload map[string]interface{}, sessionData map[string]interface{}) (*http.Response, error) {
+	if !st.isInitialized {
+		return nil, errors.New("driver has not yet been initialized")
+	}
+
+	sessionInput := &struct {
+		UserID      string `json:"userId"`
+		JwtPayload  *map[string]interface{}
+		SessionData *map[string]interface{}
+	}{
+		userID,
+		&jwtPayload,
+		&sessionData,
+	}
+
+	buf := new(bytes.Buffer)
+	json.NewEncoder(buf).Encode(sessionInput)
+	resp, err := st.doRoundRobin("POST", "/handshake", buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
