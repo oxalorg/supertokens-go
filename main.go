@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -51,7 +53,6 @@ type HandshakeInfo struct {
 
 func main() {
 	stCore := &SupertokensCore{}
-	hello()
 	stCore.backends = &[]backendConfig{
 		backendConfig{
 			"localhost", 3567,
@@ -76,7 +77,7 @@ func main() {
 	stCore.init()
 }
 
-func hello() *http.Response {
+func (st *SupertokensCore) hello() *http.Response {
 	resp, err := http.Get("http://localhost:3567/hello")
 	if err != nil {
 		log.Fatalln(err)
@@ -91,7 +92,9 @@ func (st *SupertokensCore) init() {
 	}
 	// Perform Handshake
 	if st.handshakeInfo == nil {
-		resp, err := http.Get("http://localhost:3567/handshake")
+		buf := new(bytes.Buffer)
+		json.NewEncoder(buf).Encode(st.deviceDriverInfo)
+		resp, err := http.Post("http://localhost:3567/handshake", "application/json", buf)
 		if err != nil {
 			log.Fatalln(err)
 		}
