@@ -107,13 +107,13 @@ func (st *SupertokensCore) handshake() error {
 
 	resp, err := st.doRoundRobin("POST", "/handshake", buf)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 	defer resp.Body.Close()
 	st.handshakeInfo = &HandshakeInfo{}
 	err = json.NewDecoder(resp.Body).Decode(st.handshakeInfo)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	log.Println(st.handshakeInfo)
