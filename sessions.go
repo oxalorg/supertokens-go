@@ -94,6 +94,5 @@ func (st *SupertokensCore) revokeSessionByUserID(userID string) (bool, error) {
 		return false, err
 	}
 
-	fmt.Println("Output: ", outputParams.Status)
 	return outputParams.NumberOfSessionsRevoked > 0, nil
 }
