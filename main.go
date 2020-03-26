@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 )
@@ -12,6 +15,7 @@ type SupertokensCore struct {
 	backends         []BackendConfig
 	handshakeInfo    *HandshakeInfo
 	deviceDriverInfo *DeviceDriverInfo
+	client           *http.Client
 }
 
 // DeviceDriverInfo info about device and driver
@@ -26,7 +30,7 @@ type Driver struct {
 	version string
 }
 
-// Details about Frontend SDKs
+// FrontendSDK Details about Frontend SDKs
 type FrontendSDK struct {
 	name    string
 	version string
@@ -36,10 +40,6 @@ type FrontendSDK struct {
 type BackendConfig struct {
 	hostname string
 	port     int
-}
-
-// Querier allows transparently calling multiple backends
-type Querier struct {
 }
 
 // HandshakeInfo singleton
@@ -57,9 +57,21 @@ type HandshakeInfo struct {
 func main() {
 }
 
+func (st *SupertokensCore) doRoundRobin(method string, path string, body io.Reader) (*http.Response, error) {
+	for _, backend := range st.backends {
+		url := fmt.Sprintf("http://%s:%d%s", backend.hostname, backend.port, path)
+		req, err := http.NewRequest(method, url, body)
+		resp, err := st.client.Do(req)
+		if err == nil {
+			return resp, nil
+		}
+	}
+	return nil, errors.New("none of the backends are active")
+}
+
 func (st *SupertokensCore) hello() *http.Response {
 	// TODO: Round Robin
-	resp, err := http.Get("http://localhost:3567/hello")
+	resp, err := st.doRoundRobin("GET", "/hello", nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -68,10 +80,7 @@ func (st *SupertokensCore) hello() *http.Response {
 }
 
 func (st *SupertokensCore) init(backends []BackendConfig, deviceDriverInfo *DeviceDriverInfo) {
-	for _, backend := range st.backends {
-		log.Println(backend)
-	}
-
+	st.client = &http.Client{}
 	deviceDriverInfo.driver = &Driver{
 		"supertokens-go", "0.0",
 	}
@@ -88,8 +97,7 @@ func (st *SupertokensCore) handshake() {
 	buf := new(bytes.Buffer)
 	json.NewEncoder(buf).Encode(st.deviceDriverInfo)
 
-	// TODO: Round Robin
-	resp, err := http.Post("http://localhost:3567/handshake", "application/json", buf)
+	resp, err := st.doRoundRobin("POST", "/handshake", buf)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -102,3 +110,4 @@ func (st *SupertokensCore) handshake() {
 
 	log.Println(st.handshakeInfo)
 }
+
