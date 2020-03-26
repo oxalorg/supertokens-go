@@ -68,3 +68,32 @@ func (st *SupertokensCore) createSession(userID string, jwtPayload *map[string]i
 
 	return sessionResponse, nil
 }
+
+func (st *SupertokensCore) revokeSessionByUserID(userID string) (bool, error) {
+	inputParams := &struct {
+		UserID string `json:"userId"`
+	}{
+		userID,
+	}
+
+	buf := new(bytes.Buffer)
+	json.NewEncoder(buf).Encode(inputParams)
+	resp, err := st.doRoundRobin("DELETE", "/session", buf)
+	defer resp.Body.Close()
+	if err != nil {
+		return false, err
+	}
+
+	outputParams := &struct {
+		Status                  string
+		NumberOfSessionsRevoked int
+	}{}
+
+	err = json.NewDecoder(resp.Body).Decode(outputParams)
+	if err != nil {
+		return false, err
+	}
+
+	fmt.Println("Output: ", outputParams.Status)
+	return outputParams.NumberOfSessionsRevoked > 0, nil
+}
