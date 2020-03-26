@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"testing"
 )
 
@@ -130,13 +129,8 @@ func TestGetSession(t *testing.T) {
 			"ox", "oxalorg", "programming", "supertokens",
 		},
 	}
-	resp, err := stCore.createSession("User1", jwtPayload, sessionData)
+	_, err := stCore.createSession("User1", jwtPayload, sessionData)
 	if err != nil {
 		t.Errorf("createSession() failed with errors %v", err)
 	}
-	if resp.StatusCode != 200 {
-		t.Errorf("createSession failed")
-	}
-	data, _ := ioutil.ReadAll(resp.Body)
-	t.Log(string(data))
 }

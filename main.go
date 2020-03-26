@@ -143,7 +143,7 @@ type StToken struct {
 	Domain       string
 }
 
-func (st *SupertokensCore) createSession(userID string, jwtPayload *map[string]interface{}, sessionData *map[string]interface{}) (*http.Response, error) {
+func (st *SupertokensCore) createSession(userID string, jwtPayload *map[string]interface{}, sessionData *map[string]interface{}) (*SessionResponse, error) {
 	if !st.isInitialized {
 		return nil, errors.New("driver has not yet been initialized")
 	}
@@ -166,5 +166,11 @@ func (st *SupertokensCore) createSession(userID string, jwtPayload *map[string]i
 		return nil, err
 	}
 
-	return resp, nil
+	sessionResponse := &SessionResponse{}
+	err = json.NewDecoder(resp.Body).Decode(sessionResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return sessionResponse, nil
 }
