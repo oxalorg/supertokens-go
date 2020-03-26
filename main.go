@@ -45,13 +45,13 @@ type BackendConfig struct {
 // HandshakeInfo singleton
 type HandshakeInfo struct {
 	JwtSigningPublicKey            string
+	JwtSigningPublicKeyExpiryTime  int64
 	CookieDomain                   string
 	CookieSecure                   bool
 	AccessTokenPath                string
 	RefreshTokenPath               string
 	EnableAntiCsrf                 bool
 	AccessTokenBlacklistingEnabled bool
-	JwtSigningPublicKeyExpiryTime  int64
 }
 
 func main() {
@@ -120,11 +120,13 @@ func (st *SupertokensCore) handshake() error {
 
 // SessionResponse session response containing tokens
 type SessionResponse struct {
-	Session        *stSession
-	AccessToken    *StToken
-	RefreshToken   *StToken
-	IDRefreshToken *StToken `json:"idRefreshToken"`
-	AntiCsrfToken  string
+	Session                       *stSession
+	AccessToken                   *StToken
+	RefreshToken                  *StToken
+	IDRefreshToken                *StToken `json:"idRefreshToken"`
+	AntiCsrfToken                 string
+	JwtSigningPublicKey           string
+	JwtSigningPublicKeyExpiryTime int64
 }
 
 type stSession struct {
@@ -171,6 +173,9 @@ func (st *SupertokensCore) createSession(userID string, jwtPayload *map[string]i
 	if err != nil {
 		return nil, err
 	}
+
+	st.handshakeInfo.JwtSigningPublicKey = sessionResponse.JwtSigningPublicKey
+	st.handshakeInfo.JwtSigningPublicKeyExpiryTime = sessionResponse.JwtSigningPublicKeyExpiryTime
 
 	return sessionResponse, nil
 }
